@@ -5,6 +5,7 @@ import java.io.File
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.util.resourceToString
+import org.xerial.snappy.OSInfo
 
 object TestDir {
 
@@ -39,31 +40,32 @@ object TestDir {
 //      println(line)
 //    }
 
-    val queryString = resourceToString("q39a.sql",
-      classLoader = Thread.currentThread().getContextClassLoader)
+    val classLoader = Thread.currentThread().getContextClassLoader
+    val tempDir = Utils.createTempDir()
+    val srcDatagenDir = s"tpcds/"
 
-    println("AAAAAAAAAAAAAAAAAAAAAAAA")
-    println(queryString)
-    println("AAAAAAAAAAAAAAAAAAAAAAAA")
+//    val queryString = resourceToString("q39a.sql",
+//      classLoader = Thread.currentThread().getContextClassLoader)
 
+////    println("AAAAAAAAAAAAAAAAAAAAAAAA")
+////    println(queryString)
+////    println("AAAAAAAAAAAAAAAAAAAAAAAA")
+//
+//    val path = classLoader.getResource(srcDatagenDir).getPath
+//
     val path = getClass.getResource("/").getPath()
     val folder = new File(path)
-    if (folder.exists && folder.isDirectory)
-      folder.listFiles
-        .toList
-        .foreach(file => println("---ZZZZZZ---\n" + file.getName + "\n---ZZZZZZ---"))
-
-   }
-
-  val path = getClass.getClassLoader().getResource("").getPath
-  val folder = new File(path)
-  if (folder.exists && folder.isDirectory)
     folder.listFiles
       .toList
-      .foreach(file => println("---DDDDDD---\n" + file.getName + "\n---DDDDDDD---"))
+      .foreach(file => println("---ZZZZZZ---\n" + file.getName + "\n---ZZZZZZ---"))
 
+    val path2 = getClass.getClassLoader().getResource("").getPath
+    val folder2 = new File(path2)
+    if (folder2.exists && folder2.isDirectory)
+      folder2.listFiles
+        .toList
+        .foreach(file => println("---DDDDDD---\n" + file.getName + "\n---DDDDDDD---"))
 
-
-
+   }
 
 }

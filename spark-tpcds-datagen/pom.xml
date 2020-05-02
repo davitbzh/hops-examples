@@ -70,6 +70,25 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/com.twitter/util-jvm -->
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>util-jvm_${scala.base}</artifactId>
+      <version>6.23.0</version>
+    </dependency>
+
+
+    <!-- https://mvnrepository.com/artifact/org.apache.hudi/hudi-spark-bundle -->
+    <dependency>
+      <groupId>org.apache.hudi</groupId>
+      <artifactId>hudi-spark-bundle_${scala.base}</artifactId>
+      <version>0.5.1-incubating</version>
+      <scope>provided</scope>
+    </dependency>
+
+
+
+
 <!--    <dependency>-->
 <!--      <groupId>org.xerial.snappy</groupId>-->
 <!--      <artifactId>snappy-java</artifactId>-->
@@ -164,12 +183,12 @@
       </plugin>
     </plugins>
 
-    <!-- custom resource folders -->
-    <resources>
-      <resource>
-        <directory>${basedir}/src/main/resources/tpcds</directory>
-      </resource>
-    </resources>
+<!--    &lt;!&ndash; custom resource folders &ndash;&gt;-->
+<!--    <resources>-->
+<!--      <resource>-->
+<!--        <directory>${basedir}/src/main/resources/tpcds</directory>-->
+<!--      </resource>-->
+<!--    </resources>-->
 
   </build>
 

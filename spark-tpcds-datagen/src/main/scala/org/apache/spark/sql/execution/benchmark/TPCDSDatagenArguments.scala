@@ -27,9 +27,9 @@ class TPCDSDatagenArguments(val args: Array[String]) {
   var scaleFactor = "1"
   var format = "parquet"
   var overwrite = false
-  var partitionTables = false
+  var partitionTables = true
   var useDoubleForDecimal = false
-  var clusterByPartitionColumns = false
+  var clusterByPartitionColumns = true
   var filterOutNullPartitionValues = false
   var tableFilter: Set[String] = Set.empty
   var numPartitions = "100"

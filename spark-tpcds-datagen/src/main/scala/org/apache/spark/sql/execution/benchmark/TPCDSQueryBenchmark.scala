@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.execution.benchmark
 
+import com.databricks.spark.sql.perf
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
