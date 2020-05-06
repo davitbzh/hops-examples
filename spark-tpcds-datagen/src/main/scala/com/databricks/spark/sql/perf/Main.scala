@@ -1,9 +1,9 @@
 package com.databricks.spark.sql.perf
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.execution.benchmark.TPCDSQueryBenchmark.conf
 
 import scala.util.control.NonFatal
 
@@ -12,6 +12,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
+
+    // Setup Spark
+    val conf: SparkConf = new SparkConf()
     val spark = SparkSession.builder.config(conf).getOrCreate()
 
 //    // Database to be used:
@@ -38,7 +41,7 @@ object Main {
 
     val timeout = 60 // timeout in hours
 
-    val query_filter = Seq() // Seq() == all queries
+    val query_filter = Seq("q72-v1.4", "q64-v1.4", "q80-v1.4", "q95-v1.4", "q14b-v1.4") // Seq() == all queries
     //val query_filter = Seq("q6-v2.4", "q5-v2.4") // run subset of queries
     val randomizeQueries = false // run queries in a random order. Recommended for parallel runs.
 
@@ -55,6 +58,20 @@ object Main {
       "promotion", "store", "store_returns", "catalog_sales", "web_sales", "store_sales",
       "web_returns", "web_site", "reason", "call_center", "warehouse", "ship_mode", "income_band",
       "time_dim", "web_page")
+//    val tables = Seq(   "store_sales",
+//                        "item",
+//                        "date_dim",
+//                        "catalog_sales",
+//                        "inventory",
+//                        "warehouse",
+//                        "customer_demographics",
+//                        "household_demographics",
+//                        "promotion",
+//                        "catalog_returns",
+//                        "web_sales",
+//                        "customer_address",
+//                        "web_site"
+//    )
 
     def setupTables(dataLocation: String): Map[String, Long] = {
       tables.map { tableName =>
@@ -64,7 +81,10 @@ object Main {
     }
 
     setupTables(dataLocation)
+
+
     //------------------------------------------------------------------------------------------------------
+
     import com.databricks.spark.sql.perf.tpcds.TPCDS
 
     val tpcds = new TPCDS (sqlContext = spark.sqlContext)

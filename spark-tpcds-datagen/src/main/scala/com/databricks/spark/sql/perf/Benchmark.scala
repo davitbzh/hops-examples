@@ -349,6 +349,10 @@ object Benchmark {
         .foreach { name =>
           try {
             sqlContext.table(name)
+
+//            sqlContext.table(name).write.format("parquet").mode("overwrite")
+//              .save(s"hdfs:///Projects/benchmark/benchmark_Training_Datasets/selected_tpcds/$name.parquet")
+
             logMessage(s"Table $name exists.")
           } catch {
             case ae: Exception =>
@@ -356,6 +360,9 @@ object Benchmark {
                 .find(_.name == name)
               if (table.isDefined) {
                 logMessage(s"Creating table: $name")
+
+//                table.get.data.write.format("parquet").mode("overwrite")
+//                  .save(s"hdfs:///Projects/benchmark/benchmark_Training_Datasets/selected_tpcds/$name.parquet")
                 table.get.data
                   .write
                   .mode("overwrite")

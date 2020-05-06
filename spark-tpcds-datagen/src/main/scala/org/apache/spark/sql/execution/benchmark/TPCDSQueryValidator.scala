@@ -25,7 +25,7 @@ import com.codahale.metrics.{ExponentiallyDecayingReservoir, Histogram, MetricRe
 import org.apache.spark.SparkConf
 import org.apache.spark.metrics.source.CodegenMetrics._
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.execution.benchmark.Utils._
+import Utils._
 
 object TPCDSQueryValidator {
 

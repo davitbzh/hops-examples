@@ -18,9 +18,9 @@
 package org.apache.spark.sql.execution.benchmark
 
 import scala.sys.process._
-
-import org.apache.spark.sql.{Column, DataFrame, Row, SaveMode, SparkSession, SQLContext}
+import org.apache.spark.sql.{Column, DataFrame, Row, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.types._
+import org.hops.examples.benchmark.hudi.HoodieOp
 
 
 /**
@@ -31,11 +31,11 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
 
   private def sparkContext = sqlContext.sparkContext
 
-  private case class Table(name: String, partitionColumns: Seq[String], fields: StructField*) {
+  private case class Table(name: String, primaryKey: List[String], partitionColumns: Seq[String], fields: StructField*) {
     val schema = StructType(fields)
 
     def nonPartitioned: Table = {
-      Table(name, Nil, fields : _*)
+      Table(name, primaryKey,  Nil, fields : _*)
     }
 
     /**
@@ -106,7 +106,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
         field.copy(dataType = newDataType)
       }
 
-      Table(name, partitionColumns, newFields: _*)
+      Table(name, primaryKey, partitionColumns, newFields: _*)
     }
 
     def genData(
@@ -153,13 +153,65 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
         // If the table is not partitioned, coalesce the data to a single file.
         data.coalesce(1).write
       }
+      // ------------------------------------------------
+      // TODO (davit): provide hudi specific ops here
       writer.format(format).mode(mode)
       if (partitionColumns.nonEmpty) {
         writer.partitionBy(partitionColumns : _*)
       }
       writer.save(location)
       sqlContext.dropTempTable(tempTableName)
+      // ------------------------------------------------
     }
+
+    def genHoodieData(
+                       format: String,
+                       hoodieStorageType: String,
+                       hoodieOperation: String,
+                       primaryKey: String,
+                       fssyncTable: String,
+                       hoodieSaveMode: String,
+                       hiveIpadderss: String,
+                       filterOutNullPartitionValues: Boolean,
+                       numPartitions: Int): Unit = {
+
+      val data = df(format != "text", numPartitions)
+      val tempTableName = s"${name}_text"
+      data.createOrReplaceTempView(tempTableName)
+
+      if (partitionColumns.nonEmpty) {
+        val columnString = data.schema.fields.map { field =>
+          field.name
+        }.mkString(",")
+        val partitionColumnString = partitionColumns.mkString(",")
+        val predicates = if (filterOutNullPartitionValues) {
+          partitionColumns.map(col => s"$col IS NOT NULL").mkString("WHERE ", " AND ", "")
+        } else {
+          ""
+        }
+
+        val query =
+          s"""
+             |SELECT
+             |  $columnString
+             |FROM
+             |  $tempTableName
+             |$predicates
+             |DISTRIBUTE BY
+             |  $partitionColumnString
+            """.stripMargin
+        val grouped = sqlContext.sql(query)
+
+        HoodieOp.huodieops( hiveIpadderss, grouped, name, hoodieStorageType,
+          hoodieOperation, primaryKey, partitionColumnString,
+          fssyncTable, hoodieSaveMode)
+
+      } else {
+        throw new IllegalStateException("Exception thrown")
+      }
+
+    }
+
 
     def createExternalTable(
         location: String, format: String, databaseName: String, overwrite: Boolean): Unit = {
@@ -207,16 +259,19 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       tablesToBeGenerated
     }
 
+    // TODO (davit): provide hudi specific ops here
     withSpecifiedDataType.foreach { table =>
       val tableLocation = s"$location/${table.name}"
       table.genData(tableLocation, format, overwrite, clusterByPartitionColumns,
         filterOutNullPartitionValues, numPartitions)
     }
+
   }
 
   // scalastyle:off
   private val tables = Seq(
     Table("catalog_sales",
+      primaryKey = List("cs_item_sk","cs_order_number"),
       partitionColumns = "cs_sold_date_sk" :: Nil,
       'cs_sold_date_sk          .int,
       'cs_sold_time_sk          .int,
@@ -253,6 +308,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'cs_net_paid_inc_ship_tax .decimal(7,2),
       'cs_net_profit            .decimal(7,2)),
     Table("catalog_returns",
+      primaryKey = List("cr_item_sk", "cr_order_number"),
       partitionColumns = "cr_returned_date_sk" :: Nil,
       'cr_returned_date_sk      .int,
       'cr_returned_time_sk      .int,
@@ -282,12 +338,14 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'cr_store_credit          .decimal(7,2),
       'cr_net_loss              .decimal(7,2)),
     Table("inventory",
+      primaryKey = List("inv_date_sk", "inv_item_sk", "inv_warehouse_sk"),
       partitionColumns = "inv_date_sk" :: Nil,
       'inv_date_sk              .int,
       'inv_item_sk              .int,
       'inv_warehouse_sk         .int,
       'inv_quantity_on_hand     .int),
     Table("store_sales",
+      primaryKey = List("ss_item_sk", "ss_ticket_number"),
       partitionColumns = "ss_sold_date_sk" :: Nil,
       'ss_sold_date_sk          .int,
       'ss_sold_time_sk          .int,
@@ -313,6 +371,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'ss_net_paid_inc_tax      .decimal(7,2),
       'ss_net_profit            .decimal(7,2)),
     Table("store_returns",
+      primaryKey = List("sr_item_sk", "sr_ticket_number"),
       partitionColumns = "sr_returned_date_sk" ::Nil,
       'sr_returned_date_sk      .long,
       'sr_return_time_sk        .long,
@@ -335,6 +394,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'sr_store_credit          .decimal(7,2),
       'sr_net_loss              .decimal(7,2)),
     Table("web_sales",
+      primaryKey = List("ws_item_sk", "ws_order_number"),
       partitionColumns = "ws_sold_date_sk" :: Nil,
       'ws_sold_date_sk          .int,
       'ws_sold_time_sk          .int,
@@ -371,6 +431,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'ws_net_paid_inc_ship_tax .decimal(7,2),
       'ws_net_profit            .decimal(7,2)),
     Table("web_returns",
+      primaryKey = List("wr_order_number", "wr_item_sk"),
       partitionColumns = "wr_returned_date_sk" ::Nil,
       'wr_returned_date_sk      .long,
       'wr_returned_time_sk      .long,
@@ -397,6 +458,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'wr_account_credit        .decimal(7,2),
       'wr_net_loss              .decimal(7,2)),
     Table("call_center",
+      primaryKey = List("identifier"),
       partitionColumns = Nil,
       'cc_call_center_sk        .int,
       'cc_call_center_id        .string,
@@ -430,6 +492,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'cc_gmt_offset            .decimal(5,2),
       'cc_tax_percentage        .decimal(5,2)),
     Table("catalog_page",
+      primaryKey = List("cp_catalog_page_sk"),
       partitionColumns = Nil,
       'cp_catalog_page_sk       .int,
       'cp_catalog_page_id       .string,
@@ -441,6 +504,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'cp_description           .string,
       'cp_type                  .string),
     Table("customer",
+      primaryKey = List("c_customer_sk"),
       partitionColumns = Nil,
       'c_customer_sk            .int,
       'c_customer_id            .string,
@@ -461,6 +525,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'c_email_address          .string,
       'c_last_review_date       .string),
     Table("customer_address",
+      primaryKey = List("ca_address_sk"),
       partitionColumns = Nil,
       'ca_address_sk            .int,
       'ca_address_id            .string,
@@ -476,6 +541,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'ca_gmt_offset            .decimal(5,2),
       'ca_location_type         .string),
     Table("customer_demographics",
+      primaryKey = List("cd_demo_sk"),
       partitionColumns = Nil,
       'cd_demo_sk               .int,
       'cd_gender                .string,
@@ -487,6 +553,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'cd_dep_employed_count    .int,
       'cd_dep_college_count     .int),
     Table("date_dim",
+      primaryKey = List("d_date_sk"),
       partitionColumns = Nil,
       'd_date_sk                .int,
       'd_date_id                .string,
@@ -517,6 +584,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'd_current_quarter        .string,
       'd_current_year           .string),
     Table("household_demographics",
+      primaryKey = List("hd_demo_sk"),
       partitionColumns = Nil,
       'hd_demo_sk               .int,
       'hd_income_band_sk        .int,
@@ -524,11 +592,13 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'hd_dep_count             .int,
       'hd_vehicle_count         .int),
     Table("income_band",
+      primaryKey = List("ib_income_band_sk"),
       partitionColumns = Nil,
       'ib_income_band_sk        .int,
       'ib_lower_bound           .int,
       'ib_upper_bound           .int),
     Table("item",
+      primaryKey = List("i_item_sk"),
       partitionColumns = Nil,
       'i_item_sk                .int,
       'i_item_id                .string,
@@ -553,6 +623,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'i_manager_id             .int,
       'i_product_name           .string),
     Table("promotion",
+      primaryKey = List("p_promo_sk"),
       partitionColumns = Nil,
       'p_promo_sk               .int,
       'p_promo_id               .string,
@@ -574,11 +645,13 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'p_purpose                .string,
       'p_discount_active        .string),
     Table("reason",
+      primaryKey = List("r_reason_sk"),
       partitionColumns = Nil,
       'r_reason_sk              .int,
       'r_reason_id              .string,
       'r_reason_desc            .string),
     Table("ship_mode",
+      primaryKey = List("sm_ship_mode_sk"),
       partitionColumns = Nil,
       'sm_ship_mode_sk          .int,
       'sm_ship_mode_id          .string,
@@ -587,6 +660,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'sm_carrier               .string,
       'sm_contract              .string),
     Table("store",
+      primaryKey = List("s_store_sk"),
       partitionColumns = Nil,
       's_store_sk               .int,
       's_store_id               .string,
@@ -618,6 +692,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       's_gmt_offset             .decimal(5,2),
       's_tax_precentage         .decimal(5,2)),
     Table("time_dim",
+      primaryKey = List("t_time_sk"),
       partitionColumns = Nil,
       't_time_sk                .int,
       't_time_id                .string,
@@ -630,6 +705,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       't_sub_shift              .string,
       't_meal_time              .string),
     Table("warehouse",
+      primaryKey = List("w_warehouse_sk"),
       partitionColumns = Nil,
       'w_warehouse_sk           .int,
       'w_warehouse_id           .string,
@@ -646,6 +722,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'w_country                .string,
       'w_gmt_offset             .decimal(5,2)),
     Table("web_page",
+      primaryKey = List("wp_web_page_sk"),
       partitionColumns = Nil,
       'wp_web_page_sk           .int,
       'wp_web_page_id           .string,
@@ -662,6 +739,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
       'wp_image_count           .int,
       'wp_max_ad_count          .int),
     Table("web_site",
+      primaryKey = List("web_site_sk"),
       partitionColumns = Nil,
       'web_site_sk              .int,
       'web_site_id              .string,

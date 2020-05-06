@@ -87,7 +87,12 @@
     </dependency>
 
 
-
+    <!-- https://mvnrepository.com/artifact/org.rogach/scallop -->
+    <dependency>
+      <groupId>org.rogach</groupId>
+      <artifactId>scallop_2.11</artifactId>
+      <version>3.4.0</version>
+    </dependency>
 
 <!--    <dependency>-->
 <!--      <groupId>org.xerial.snappy</groupId>-->
