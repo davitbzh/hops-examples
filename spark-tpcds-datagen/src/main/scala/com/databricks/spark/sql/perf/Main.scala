@@ -6,7 +6,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
 import scala.util.control.NonFatal
-
+import io.hops.util.Hops
+import org.apache.hudi.HoodieDataSourceHelpers
+import org.apache.hudi.common.table.HoodieTimeline
 
 object Main {
 
@@ -41,16 +43,16 @@ object Main {
 
     val timeout = 60 // timeout in hours
 
-    val query_filter = Seq("q72-v1.4", "q64-v1.4", "q80-v1.4", "q95-v1.4", "q14b-v1.4") // Seq() == all queries
+    val query_filter = Seq() // Seq() == all queries; if Seq("q72-v1.4", "q64-v1.4", "q80-v1.4", "q95-v1.4", "q14b-v1.4")
     //val query_filter = Seq("q6-v2.4", "q5-v2.4") // run subset of queries
     val randomizeQueries = false // run queries in a random order. Recommended for parallel runs.
 
     // Spark configuration
     spark.conf.set("spark.sql.broadcastTimeout", "10000") // good idea for Q14, Q88.
 
-    // ... + any other configuration tuning
 
-//    spark.sql(s"use $databaseName")
+    // TODO (davit): make argument here, you may need outside feature store queries
+    spark.sql(s"use ${Hops.getProjectFeaturestore.read}")
 
     //------------------------------------------------------------------------------------------------------
     val tables = Seq("catalog_page", "catalog_returns", "customer", "customer_address",
@@ -58,31 +60,22 @@ object Main {
       "promotion", "store", "store_returns", "catalog_sales", "web_sales", "store_sales",
       "web_returns", "web_site", "reason", "call_center", "warehouse", "ship_mode", "income_band",
       "time_dim", "web_page")
-//    val tables = Seq(   "store_sales",
-//                        "item",
-//                        "date_dim",
-//                        "catalog_sales",
-//                        "inventory",
-//                        "warehouse",
-//                        "customer_demographics",
-//                        "household_demographics",
-//                        "promotion",
-//                        "catalog_returns",
-//                        "web_sales",
-//                        "customer_address",
-//                        "web_site"
-//    )
 
-    def setupTables(dataLocation: String): Map[String, Long] = {
+    // TODO (davit): make argument here, you may need outside feature store and non hudi queries
+    def setupTables(dataLocation: String): Map[String, HoodieTimeline] = {
       tables.map { tableName =>
-        spark.read.parquet(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
-        tableName -> spark.table(tableName).count()
+          //spark.read.parquet(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
+          val timeline: HoodieTimeline = HoodieDataSourceHelpers.allCompletedCommitsCompactions(FileSystem.get(spark.sparkContext.hadoopConfiguration),
+            s"$dataLocation/$tableName")
+          
+          spark.read.format("org.apache.hudi")
+            .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
+        tableName -> timeline
+
       }.toMap
     }
 
-    setupTables(dataLocation)
-
-
+    val qtables: Map[String, HoodieTimeline] = setupTables(dataLocation)
     //------------------------------------------------------------------------------------------------------
 
     import com.databricks.spark.sql.perf.tpcds.TPCDS
@@ -99,7 +92,7 @@ object Main {
       queries,
       iterations = iterations,
       resultLocation = resultLocation,
-      tags = Map("runtype" -> "benchmark", "database" -> "databaseName_change_this", "scale_factor" -> scaleFactor)
+      tags = Map("runtype" -> "benchmark", "database" -> Hops.getProjectFeaturestore.read(), "scale_factor" -> scaleFactor)
     )
 
     println(experiment.toString)
