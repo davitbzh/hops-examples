@@ -17,7 +17,7 @@ object Main {
 
     // Setup Spark
     val conf: SparkConf = new SparkConf()
-    val spark = SparkSession.builder.config(conf).getOrCreate()
+    val spark = SparkSession.builder.config(conf).enableHiveSupport().getOrCreate()
 
 //    // Database to be used:
 //    // TPCDS Scale factor
@@ -35,9 +35,10 @@ object Main {
 //      s"""_${if (filterNull) "no" else "with"}nulls"""
 //
 
-    val dataLocation = args(0)
-    val resultLocation = args(1)
-    val iterations = args(2).toInt // how many times to run the whole set of queries.
+    val hudiopname = args(0)
+    val dataLocation = args(1)
+    val resultLocation = args(2)
+    val iterations = args(3).toInt // how many times to run the whole set of queries.
 
 
 
@@ -105,7 +106,7 @@ object Main {
 //      .select("Name", "Runtime")
 
     val timestamp = System.currentTimeMillis()
-    val resultPath = s"$resultLocation/timestamp=$timestamp.parquet"
+    val resultPath = s"$resultLocation/$hudiopname=$timestamp.parquet"
 
     try {
       experiment.logMessage(s"Results written to table: 'sqlPerformance' at $resultPath")
