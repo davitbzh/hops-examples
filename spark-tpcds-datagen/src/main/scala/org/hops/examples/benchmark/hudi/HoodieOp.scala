@@ -81,3 +81,21 @@ object HoodieOp {
   }
 
 }
+
+/*
+https://github.com/tensorflow/docs/blob/cf2a57e77485c371f04cc486d9d1e632ef552739/site/en/guide/distributed_training.ipynb
+https://www.tensorflow.org/guide/function
+https://www.logicalclocks.com/blog/mlops-with-a-feature-store
+https://www.youtube.com/watch?v=ZnukSLKEw34
+https://www.youtube.com/watch?v=e4_4D7uNvf8
+https://www.youtube.com/watch?v=pXHAQIhhMhI
+https://www.tensorflow.org/tutorials/customization/custom_training_walkthrough
+https://www.tensorflow.org/guide/profiler
+https://www.tensorflow.org/tensorboard/tensorboard_profiling_keras
+https://www.youtube.com/watch?v=6ovfZW8pepo
+https://www.tensorflow.org/guide/data_performance
+https://www.tensorflow.org/api_docs/python/tf/nn/compute_average_loss
+https://www.tensorflow.org/guide/data_performance
+https://www.tensorflow.org/api_docs/python/tf/data/Dataset
+
+ */
