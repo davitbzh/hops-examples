@@ -35,6 +35,7 @@ object Main {
 //      s"""_${if (filterNull) "no" else "with"}nulls"""
 //
 
+//  bulk_insert hdfs:///Projects/hudi_benchmarks/hudi_benchmarks_Training_Datasets/hoodie hdfs:///Projects/hudi_benchmarks/Logs/hudi_bench 3
     val hudiopname = args(0)
     val dataLocation = args(1)
     val resultLocation = args(2)

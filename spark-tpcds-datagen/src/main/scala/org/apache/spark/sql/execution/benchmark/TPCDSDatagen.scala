@@ -213,7 +213,6 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
         HoodieOp.huodieops( hiveIpadderss, data, name, hoodieStorageType,
           hoodieOperation, "primarykey", null,
           fssyncTable, hoodieSaveMode)
-
       }
 
       sqlContext.dropTempTable(tempTableName)
