@@ -401,10 +401,10 @@ object Benchmark {
             }
             startTime = System.currentTimeMillis()
 
-            //-----------------------
-            //write html file
-            writehtml
-            //-----------------------
+//            //-----------------------
+//            //write html file
+//            writehtml
+//            //-----------------------
 
             val singleResultT = Try {
               q.benchmark(includeBreakdown, setup, currentMessages, timeout,
