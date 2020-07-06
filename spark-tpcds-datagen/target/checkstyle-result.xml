@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="6.2">
+<file name="/Users/davitbz/IdeaProjects/hops/hops-examples/spark-tpcds-datagen/src/main/resources/log4j.properties">
+</file>
+<file name="/Users/davitbz/IdeaProjects/hops/hops-examples/spark-tpcds-datagen/src/test/resources/log4j.properties">
+</file>
+</checkstyle>
