@@ -3,6 +3,8 @@ package io.hops.examples.flink.kafka;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+//import org.apache.flink.table.api.java.StreamTableEnvironment;
+
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 
@@ -22,6 +24,7 @@ public class FlinkKafkaProducerExample {
     env.getConfig().setGlobalJobParameters(params);
 
     env.setParallelism(params.getInt("parallelism", 1));
+//    StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
     // --------------------------------------------------------------------------------------------------------------
     // configure Kafka consumer
