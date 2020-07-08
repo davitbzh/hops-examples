@@ -44,6 +44,7 @@
       <version>${hops.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.base}</artifactId>
@@ -56,18 +57,21 @@
       </exclusions>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.base}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
       <scope>provided</scope>
     </dependency>
+
   </dependencies>
 
   <build>
