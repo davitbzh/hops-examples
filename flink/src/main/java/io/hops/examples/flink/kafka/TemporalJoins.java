@@ -35,7 +35,8 @@
 //
 //  public static void main(String[] args) throws Exception {
 //
-//// Get the stream and table environments.
+//// Get the strea
+// m and table environments.
 ////    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 ////    StreamTableEnvironment tEnv = StreamTableEnvironment.getTableEnvironment(env);
 //
