@@ -107,15 +107,7 @@ public class FlinkJDBCExample {
         "  'connector.write.flush.max-rows'='" + FLUSH_MAX_ROWS + "'" +
         ")");
 
-      // /srv/hops/mysql-cluster/ndb/scripts/mysql-client.sh hopsworks;
       // create database flink_upsert_test;
-      //
-      //CREATE TABLE upsertSink (cnt BIGINT NOT NULL DEFAULT 0,lencnt BIGINT NOT NULL DEFAULT 0,cTag INT NOT NULL DEFAULT 0,ts TIMESTAMP,PRIMARY KEY (cnt, cTag))ENGINE=ndbcluster DEFAULT CHARSET=latin1 COLLATE=latin1_general_cs
-
-      //CREATE TABLE upsertSink (cnt INT NOT NULL DEFAULT 0,lencnt BIGINT NOT NULL DEFAULT 0,cTag VARCHAR(100) NOT NULL DEFAULT 0,ts TIMESTAMP,PRIMARY KEY (cnt, cTag))ENGINE=ndbcluster DEFAULT CHARSET=latin1 COLLATE=latin1_general_cs;
-
-      //CREATE TABLE upsertSink (cnt INT NOT NULL DEFAULT 0,lencnt BIGINT NOT NULL DEFAULT 0,cTag VARCHAR(100) NOT NULL DEFAULT 0, PRIMARY KEY (cnt, cTag))ENGINE=ndbcluster DEFAULT CHARSET=latin1 COLLATE=latin1_general_cs;
-
       //CREATE TABLE upsertSink (cnt INT NOT NULL DEFAULT 0,lencnt BIGINT NOT NULL DEFAULT 0,cTag INT NOT NULL DEFAULT 0, PRIMARY KEY (cTag))ENGINE=ndbcluster DEFAULT CHARSET=latin1 COLLATE=latin1_general_cs;
 
     } else if (operaton.equals("upsert")){
