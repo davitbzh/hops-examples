@@ -149,6 +149,7 @@
     <module>hive</module>
     <module>featurestore_tour</module>
     <module>featurestore_util/featurestore_util4j</module>
+    <module>spark-tpcds-datagen</module>
   </modules>
 
 
