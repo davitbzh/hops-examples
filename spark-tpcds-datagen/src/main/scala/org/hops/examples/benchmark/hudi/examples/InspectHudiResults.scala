@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 
-object InspectHudiresults {
+object InspectHudiResults {
 
   def main(args: Array[String]): Unit = {
 

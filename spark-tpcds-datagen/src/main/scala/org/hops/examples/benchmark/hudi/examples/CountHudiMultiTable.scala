@@ -5,7 +5,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
-object CountHudiMutiTable {
+object CountHudiMultiTable {
 
   def main(args: Array[String]): Unit = {
 

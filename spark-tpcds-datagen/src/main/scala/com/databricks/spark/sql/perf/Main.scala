@@ -25,7 +25,7 @@ object Main {
 //    // TPCDS Scale factor
     val scaleFactor = "1"
 
-//  bulk_insert hdfs:///Projects/hudi_benchmarks/hudi_benchmarks_Training_Datasets/hoodie hdfs:///Projects/hudi_benchmarks/Logs/hudi_bench 3
+//  bulk_insert default nthcommit hdfs:///Projects/benchmark/benchmark_Training_Datasets/tpcds hdfs:///Projects/benchmark/Logs/hudi_bench 3
     val hudiopname = args(0)
     val hudiquerytype = args(1)
     val nthcommit = args(2).toInt
@@ -63,18 +63,17 @@ object Main {
             s"$dataLocation/$tableName")
 
 
-          var start_time: String = ""
-          var end_time: String = ""
-
-          if ( nthcommit == 1){
-            start_time = "20170830115554"
-            end_time = timeline.nthInstant(nthcommit).get.getTimestamp
-          } else if ( nthcommit > 1){
-            start_time = timeline.nthInstant(nthcommit-1).get.getTimestamp
-            end_time = timeline.nthInstant(nthcommit).get.getTimestamp
-          }
-
           if (hudiquerytype.equals("incremental")){
+            var start_time: String = ""
+            var end_time: String = ""
+
+            if ( nthcommit == 1){
+              start_time = "20170830115554"
+              end_time = timeline.nthInstant(nthcommit).get.getTimestamp
+            } else if ( nthcommit > 1){
+              start_time = timeline.nthInstant(nthcommit-1).get.getTimestamp
+              end_time = timeline.nthInstant(nthcommit).get.getTimestamp
+            }
             try {
               spark.read.format("org.apache.hudi")
                 .option("hoodie.datasource.view.type", "incremental")
