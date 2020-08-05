@@ -1,10 +1,13 @@
 package org.hops.examples.benchmark.hudi
 
+import java.util.Calendar
+
 import org.apache.spark.sql.DataFrame
 import io.hops.util.Hops
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.common.util.TypedProperties
 import org.apache.hudi.keygen.ComplexKeyGenerator
+import org.apache.spark.sql.functions.lit
 
 object HoodieOp {
 
@@ -60,12 +63,19 @@ object HoodieOp {
         writer.save(s"$base_path/$hoodieTableName")
 
     } else {
-      val writer = (df.write.format("org.apache.hudi")
+
+      val cal = Calendar.getInstance()
+      val day =cal.get(Calendar.DATE )
+      val month =cal.get(Calendar.MONTH )
+      val year =cal.get(Calendar.YEAR )
+
+      val writer = (df.withColumn("date_modified", lit(s"{$day-$month-$year}"))
+        .write.format("org.apache.hudi")
         .option("hoodie.table.name", hoodieTableName)
         .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
         .option("hoodie.datasource.write.operation", hoodieOperation) //"upsert" or "bulk_insert"
-        .option("hoodie.datasource.write.recordkey.field",primaryKey)
-        .option("hoodie.datasource.write.precombine.field", primaryKey) // TODO: this is terrible just for testing
+        .option("hoodie.datasource.write.recordkey.field","date_modified")
+        .option("hoodie.datasource.write.precombine.field", "date_modified")
         .option("hoodie.datasource.write.keygenerator.class", "org.apache.hudi.NonpartitionedKeyGenerator")
         .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.NonPartitionedExtractor")
         .option("hoodie.datasource.hive_sync.enable", "true")

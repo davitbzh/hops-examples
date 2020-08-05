@@ -36,7 +36,7 @@ object Main {
 
     val timeout = 60 // timeout in hours
 
-    val query_filter = Seq() // Seq() == all queries; if Seq("q72-v1.4", "q64-v1.4", "q80-v1.4", "q95-v1.4", "q14b-v1.4")
+    val query_filter = Seq("q14b-v1.4", "q95-v1.4") // Seq() == all queries; if Seq("q72-v1.4", "q64-v1.4", "q80-v1.4", "q95-v1.4", "q14b-v1.4")
     //val query_filter = Seq("q6-v2.4", "q5-v2.4") // run subset of queries
 
     val randomizeQueries = false // run queries in a random order. Recommended for parallel runs.
@@ -81,8 +81,16 @@ object Main {
                 .option("hoodie.datasource.read.end.instanttime", end_time)
                 .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
             } catch {
-              case e: org.apache.spark.sql.AnalysisException => spark.read.format("org.apache.hudi")
+              case _: org.apache.spark.sql.AnalysisException =>  spark.read.format("org.apache.hudi")
+                .option("hoodie.datasource.view.type", "incremental")
+                .option("hoodie.datasource.read.begin.instanttime", start_time)
+                .option("hoodie.datasource.read.end.instanttime", end_time)
                 .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
+              case _: Throwable => spark.read.format("org.apache.hudi")
+                .option("hoodie.datasource.view.type", "incremental")
+                .option("hoodie.datasource.read.begin.instanttime", start_time)
+                .option("hoodie.datasource.read.end.instanttime", end_time)
+                .load(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
             }
 
           } else if (hudiquerytype.equals("default")){
@@ -90,13 +98,11 @@ object Main {
               spark.read.format("org.apache.hudi")
                 .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
             } catch {
-              case e: org.apache.spark.sql.AnalysisException => spark.read.format("org.apache.hudi")
+              case _ :  org.apache.spark.sql.AnalysisException => spark.read.format("org.apache.hudi")
                 .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
             }
           }
-          //----------
 
-          //-----------
         tableName -> timeline
 
       }.toMap
