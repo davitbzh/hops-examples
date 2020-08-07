@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession
 
 import scala.util.control.NonFatal
 import io.hops.util.Hops
-import org.apache.hudi.HoodieDataSourceHelpers
+import org.apache.hudi.{DataSourceReadOptions, HoodieDataSourceHelpers}
 import org.apache.hudi.common.table.HoodieTimeline
 
 object Main {
@@ -67,33 +67,46 @@ object Main {
             var start_time: String = ""
             var end_time: String = ""
 
-            if ( nthcommit == 1){
+            if ( nthcommit == 0){
               start_time = "20170830115554"
               end_time = timeline.nthInstant(nthcommit).get.getTimestamp
-            } else if ( nthcommit > 1){
+            } else if ( nthcommit > 0){
               start_time = timeline.nthInstant(nthcommit-1).get.getTimestamp
               end_time = timeline.nthInstant(nthcommit).get.getTimestamp
             }
-            try {
-              spark.read.format("org.apache.hudi")
-                .option("hoodie.datasource.view.type", "incremental")
-                .option("hoodie.datasource.read.begin.instanttime", start_time)
-                .option("hoodie.datasource.read.end.instanttime", end_time)
-                .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
-            } catch {
-              case _: org.apache.spark.sql.AnalysisException =>  spark.read.format("org.apache.hudi")
-                .option("hoodie.datasource.view.type", "incremental")
-                .option("hoodie.datasource.read.begin.instanttime", start_time)
-                .option("hoodie.datasource.read.end.instanttime", end_time)
-                .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
-              case _: Throwable => spark.read.format("org.apache.hudi")
-                .option("hoodie.datasource.view.type", "incremental")
-                .option("hoodie.datasource.read.begin.instanttime", start_time)
-                .option("hoodie.datasource.read.end.instanttime", end_time)
-                .load(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
-            }
+
+            spark.read
+              .format("org.apache.hudi")
+              .option("hoodie.datasource.view.type", "incremental")
+              .option(DataSourceReadOptions.BEGIN_INSTANTTIME_OPT_KEY,
+                start_time)
+              .option(DataSourceReadOptions.END_INSTANTTIME_OPT_KEY,
+                end_time)
+              .load(s"$dataLocation/$tableName") // For incremental view, pass in the root/base path of dataset
+              .createOrReplaceTempView(tableName)
+
+//            try {
+//              spark.read.format("org.apache.hudi")
+//                .option("hoodie.datasource.view.type", "incremental")
+//                .option("hoodie.datasource.read.begin.instanttime", start_time)
+//                .option("hoodie.datasource.read.end.instanttime", end_time)
+//                .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
+//            } catch {
+//              case _: org.apache.spark.sql.AnalysisException =>  spark.read.format("org.apache.hudi")
+//                .option("hoodie.datasource.view.type", "incremental")
+//                .option("hoodie.datasource.read.begin.instanttime", start_time)
+//                .option("hoodie.datasource.read.end.instanttime", end_time)
+//                .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
+//              case _: Throwable => spark.read.format("org.apache.hudi")
+//                .option("hoodie.datasource.view.type", "incremental")
+//                .option("hoodie.datasource.read.begin.instanttime", start_time)
+//                .option("hoodie.datasource.read.end.instanttime", end_time)
+//                .load(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
+//            }
 
           } else if (hudiquerytype.equals("default")){
+//            spark.sparkContext.hadoopConfiguration.setClass("mapreduce.input.pathFilter.class",
+//              classOf[org.apache.hudi.hadoop.HoodieROTablePathFilter], classOf[org.apache.hadoop.fs.PathFilter]);
             try {
               spark.read.format("org.apache.hudi")
                 .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
@@ -162,4 +175,3 @@ object Main {
 
   }
 }
-
