@@ -52,7 +52,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
           val commands = Seq(
             "bash", "-c",
             s"cd ${datagen.dir} && ./${datagen.cmd} -table $name -filter Y " +
-              s"-scale $scaleFactor $parallel"
+              s"-scale $scaleFactor $parallel" + "-RNGSEED 1"
           )
           commands.lines
         }
