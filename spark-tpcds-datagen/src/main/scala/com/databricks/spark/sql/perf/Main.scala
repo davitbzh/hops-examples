@@ -85,29 +85,8 @@ object Main {
               .load(s"$dataLocation/$tableName") // For incremental view, pass in the root/base path of dataset
               .createOrReplaceTempView(tableName)
 
-//            try {
-//              spark.read.format("org.apache.hudi")
-//                .option("hoodie.datasource.view.type", "incremental")
-//                .option("hoodie.datasource.read.begin.instanttime", start_time)
-//                .option("hoodie.datasource.read.end.instanttime", end_time)
-//                .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
-//            } catch {
-//              case _: org.apache.spark.sql.AnalysisException =>  spark.read.format("org.apache.hudi")
-//                .option("hoodie.datasource.view.type", "incremental")
-//                .option("hoodie.datasource.read.begin.instanttime", start_time)
-//                .option("hoodie.datasource.read.end.instanttime", end_time)
-//                .load(s"$dataLocation/$tableName/*").createOrReplaceTempView(tableName)
-//              case _: Throwable => spark.read.format("org.apache.hudi")
-//                .option("hoodie.datasource.view.type", "incremental")
-//                .option("hoodie.datasource.read.begin.instanttime", start_time)
-//                .option("hoodie.datasource.read.end.instanttime", end_time)
-//                .load(s"$dataLocation/$tableName").createOrReplaceTempView(tableName)
-//            }
-
           } else if (hudiquerytype.equals("default")){
-//            spark.sparkContext.hadoopConfiguration.setClass("mapreduce.input.pathFilter.class",
-//              classOf[org.apache.hudi.hadoop.HoodieROTablePathFilter], classOf[org.apache.hadoop.fs.PathFilter]);
-            try {
+           try {
               spark.read.format("org.apache.hudi")
                 .load(s"$dataLocation/$tableName/*/*").createOrReplaceTempView(tableName)
             } catch {

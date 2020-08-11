@@ -26,9 +26,10 @@ import org.apache.spark.sql.functions.{col, lit, concat}
 /**
  * This class was copied from `spark-sql-perf` and modified slightly.
  */
-class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
-  import sqlContext.implicits._
+class Tables(spark: SparkSession, scaleFactor: Int) extends Serializable {
 
+  private val sqlContext = spark.sqlContext
+  import sqlContext.implicits._
   private def sparkContext = sqlContext.sparkContext
 
   private case class Table(name: String, primaryKeys: List[String], partitionColumns: Seq[String], fields: StructField*) {
@@ -173,7 +174,7 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
                        base_path: String): Unit = {
 
       val data = df(format != "text", numPartitions)
-        .withColumn("primarykey",concat(primaryKeys.map(c => col(c)):_*))
+//        .withColumn("primarykey",concat(primaryKeys.map(c => col(c)):_*))
 
       val tempTableName = s"${name}_text"
       data.createOrReplaceTempView(tempTableName)
@@ -205,14 +206,14 @@ class Tables(sqlContext: SQLContext, scaleFactor: Int) extends Serializable {
         val grouped = sqlContext.sql(query).withColumn(partitionColumns(0), col( partitionColumns(0)).cast("int"))
           .na.fill(0, Seq(partitionColumns(0)))
 
-        HoodieOp.huodieops( hiveIpadderss, grouped, name, hoodieStorageType,
-          hoodieOperation, "primarykey", partitionColumns(0),
+        HoodieOp.huodieops(spark, hiveIpadderss, grouped, name, hoodieStorageType,
+          hoodieOperation, primaryKeys, partitionColumns(0),
           fssyncTable, hoodieSaveMode, base_path)
 
       } else {
         // throw new IllegalStateException("Exception thrown")
-        HoodieOp.huodieops( hiveIpadderss, data, name, hoodieStorageType,
-          hoodieOperation, "primarykey", null,
+        HoodieOp.huodieops(spark, hiveIpadderss, data, name, hoodieStorageType,
+          hoodieOperation, primaryKeys, null,
           fssyncTable, hoodieSaveMode, base_path)
       }
 

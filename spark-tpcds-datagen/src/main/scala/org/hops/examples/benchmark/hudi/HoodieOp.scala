@@ -2,13 +2,14 @@ package org.hops.examples.benchmark.hudi
 
 import java.util.Calendar
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row, SparkSession}
 import io.hops.util.Hops
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.common.util.TypedProperties
 import org.apache.hudi.hive.MultiPartKeysValueExtractor
 import org.apache.hudi.keygen.ComplexKeyGenerator
-import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.functions.{col, lit}
+import org.apache.spark.sql.types.{FloatType, IntegerType, LongType}
 
 object HoodieOp {
 
@@ -28,14 +29,39 @@ object HoodieOp {
 //  assertEquals("field1:field1,name:name1", hk1.getRecordKey)
 //  assertEquals("field1/name1", hk1.getPartitionPath)
 
-  def huodieops( ipadderss: String, df: DataFrame, hoodieTableName: String, hoodieStorageType: String,
-                 hoodieOperation: String, primaryKey: String, partitionField: String,
+  def huodieops(spark: SparkSession, ipadderss: String, df: DataFrame, hoodieTableName: String, hoodieStorageType: String,
+                 hoodieOperation: String, primaryKeys: List[String], partitionField: String,
                  fssyncTable: String, hoodieSaveMode: String, base_path: String): Unit = {
 
 
 //    import org.apache.hadoop.fs.{FileSystem, Path}
 //    val filesystem = FileSystem.get(spark.sparkContext.hadoopConfiguration);
 //    val output_stream = filesystem.listStatus(new Path(s"hdfs:///Projects/benchmark/Logs/"));
+
+    var resultDF = spark.sqlContext.emptyDataFrame
+    resultDF = df
+
+    if (hoodieOperation.equals("upsert")){
+
+      for (f <- resultDF.schema.fields) {
+
+        if(!primaryKeys.contains(f.name)){
+          if (f.dataType.isInstanceOf[IntegerType]) {
+
+            resultDF = resultDF.withColumn(f.name, col(f.name) * 4)
+
+          } else if (f.dataType.isInstanceOf[LongType]) {
+
+            resultDF = resultDF.withColumn(f.name, col(f.name) * 4)
+
+          } else if (f.dataType.isInstanceOf[FloatType]) {
+
+            resultDF = resultDF.withColumn(f.name, col(f.name) * 4.0)
+          }
+        }
+      }
+
+    }
 
     val trustStore = Hops.getTrustStore
     val pw = Hops.getKeystorePwd
@@ -46,71 +72,122 @@ object HoodieOp {
       + s"trustStorePassword=$pw;sslKeyStore=$keyStore;keyStorePassword=$pw"
       )
 
-//    //https://hudi.apache.org/docs/configurations.html
-//    //https://github.com/nmukerje/EMR-Hudi-Workshop/blob/225cc1d3fa41bd0abdbe337de67ac5dcf427b03c/notebooks/2_Consume_Streaming_Updates.ipynb
-//    val hudiOptions = Map[String,String](
-//      DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY -> hudiTableRecordKey,
-//      DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY -> hudiTablePartitionKey,
-//      DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY -> hudiTablePrecombineKey,
-//      DataSourceWriteOptions.HIVE_SYNC_ENABLED_OPT_KEY -> "true",
-//      DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY -> hudiHiveTablePartitionKey,
-//      DataSourceWriteOptions.HIVE_ASSUME_DATE_PARTITION_OPT_KEY -> "false",
-//      DataSourceWriteOptions.HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY -> classOf[MultiPartKeysValueExtractor].getName,
-//      "hoodie.parquet.max.file.size" -> String.valueOf(1024 * 1024 * 1024),
-//      "hoodie.parquet.small.file.limit" -> String.valueOf(64 * 1024 * 1024),
-//      "hoodie.parquet.compression.ratio" -> String.valueOf(0.5),
-//      "hoodie.insert.shuffle.parallelism" -> String.valueOf(2))
+    var primaryKey = new String
+
+    if (primaryKeys.length > 1){
+      primaryKey = primaryKeys.mkString(",")
+    } else {
+      primaryKey = primaryKeys(0)
+    }
 
     if (partitionField != null){
-      val writer = (df.write.format("org.apache.hudi")
-        .option("hoodie.table.name", hoodieTableName)
-        .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
-        .option("hoodie.datasource.write.operation", hoodieOperation)      //"upsert" or "bulk_insert"
-        .option("hoodie.datasource.write.recordkey.field",primaryKey)
-        .option("hoodie.datasource.write.partitionpath.field", partitionField) // date
-        .option("hoodie.datasource.write.precombine.field", partitionField)    // date
-        .option("hoodie.datasource.hive_sync.enable", "true")
-        .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
-        .option("hoodie.datasource.hive_sync.database", hiveDb)
-        .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
-        .option("hoodie.datasource.hive_sync.partition_fields", partitionField) // date
-        .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
-        .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
-        .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
-        .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
-        .mode(hoodieSaveMode)) //"append"
-        writer.save(s"$base_path/$hoodieTableName")
+
+      if (primaryKeys.length > 1){
+        resultDF.write.format("org.apache.hudi")
+          .option("hoodie.table.name", hoodieTableName)
+          .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
+          .option("hoodie.datasource.write.operation", hoodieOperation)      //"upsert" or "bulk_insert"
+          .option("hoodie.datasource.write.partitionpath.field", partitionField) // date
+          .option("hoodie.datasource.write.precombine.field", partitionField)    // date
+          .option("hoodie.datasource.hive_sync.enable", "true")
+          .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
+          .option("hoodie.datasource.hive_sync.database", hiveDb)
+          .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
+          .option("hoodie.datasource.hive_sync.partition_fields", partitionField) // date
+          .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
+          .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
+          .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
+          .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
+          .option("hoodie.datasource.write.recordkey.field",primaryKey)
+          .option("hoodie.datasource.write.keygenerator.class","org.apache.hudi.ComplexKeyGenerator")
+          .mode(hoodieSaveMode) //"append"
+          .save(s"$base_path/$hoodieTableName")
+      } else {
+        resultDF.write.format("org.apache.hudi")
+          .option("hoodie.table.name", hoodieTableName)
+          .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
+          .option("hoodie.datasource.write.operation", hoodieOperation)      //"upsert" or "bulk_insert"
+          .option("hoodie.datasource.write.partitionpath.field", partitionField) // date
+          .option("hoodie.datasource.write.precombine.field", partitionField)    // date
+          .option("hoodie.datasource.hive_sync.enable", "true")
+          .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
+          .option("hoodie.datasource.hive_sync.database", hiveDb)
+          .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
+          .option("hoodie.datasource.hive_sync.partition_fields", partitionField) // date
+          .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
+          .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
+          .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
+          .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
+          .option("hoodie.datasource.write.recordkey.field",primaryKey)
+          .option("hoodie.datasource.write.keygenerator.class","org.apache.hudi.SimpleKeyGenerator")
+          .mode(hoodieSaveMode) //"append"
+          .save(s"$base_path/$hoodieTableName")
+      }
 
     } else {
 
       val cal = Calendar.getInstance()
-      val day =cal.get(Calendar.DATE )
-      val month =cal.get(Calendar.MONTH )
-      val year =cal.get(Calendar.YEAR )
+      val hour = cal.get(Calendar.AM )
+      val day = cal.get(Calendar.DATE )
+      val month = cal.get(Calendar.MONTH )
+      val year = cal.get(Calendar.YEAR )
 
-      val writer = (df.withColumn("date_modified", lit(s"{$day-$month-$year}"))
-        .write.format("org.apache.hudi")
-        .option("hoodie.table.name", hoodieTableName)
-        .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
-        .option("hoodie.datasource.write.operation", hoodieOperation) //"upsert" or "bulk_insert"
-        .option("hoodie.datasource.write.recordkey.field","date_modified")
-        .option("hoodie.datasource.write.precombine.field", "date_modified")
-        .option("hoodie.datasource.hive_sync.enable", "true")
-        .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
-        .option("hoodie.datasource.hive_sync.database", hiveDb)
-        .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
-//        .option("hoodie.datasource.write.keygenerator.class", "org.apache.hudi.NonpartitionedKeyGenerator")
-//        .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.NonPartitionedExtractor")
-        .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
-        .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
-        .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
-        .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
-        .mode(hoodieSaveMode)) //"append"
-      writer.save(s"$base_path/$hoodieTableName")
+
+      if (primaryKeys.length > 1){
+        resultDF.withColumn("date_modified", lit(s"$day-$month-$year"))
+          .write.format("org.apache.hudi")
+          .option("hoodie.table.name", hoodieTableName)
+          .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
+          .option("hoodie.datasource.write.operation", hoodieOperation)      //"upsert" or "bulk_insert"
+          .option("hoodie.datasource.write.partitionpath.field","date_modified") // date
+          .option("hoodie.datasource.write.precombine.field","date_modified")    // date
+          .option("hoodie.datasource.hive_sync.enable", "true")
+          .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
+          .option("hoodie.datasource.hive_sync.database", hiveDb)
+          .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
+          .option("hoodie.datasource.hive_sync.partition_fields","date_modified") // date
+          .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
+          .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
+          .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
+          .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
+          .option("hoodie.datasource.write.recordkey.field",primaryKey)
+          .option("hoodie.datasource.write.keygenerator.class","org.apache.hudi.ComplexKeyGenerator")
+          .mode(hoodieSaveMode) //"append"
+          .save(s"$base_path/$hoodieTableName")
+      } else {
+        resultDF = resultDF.withColumn("date_modified", lit(s"$day-$month-$year"))
+        resultDF.write.format("org.apache.hudi")
+          .option("hoodie.table.name", hoodieTableName)
+          .option("hoodie.datasource.write.storage.type", hoodieStorageType) //"COPY_ON_WRITE"
+          .option("hoodie.datasource.write.operation", hoodieOperation)      //"upsert" or "bulk_insert"
+          .option("hoodie.datasource.write.partitionpath.field", "date_modified") // date
+          .option("hoodie.datasource.write.precombine.field", "date_modified")    // date
+          .option("hoodie.datasource.hive_sync.enable", "true")
+          .option("hoodie.datasource.hive_sync.table", fssyncTable) // ??
+          .option("hoodie.datasource.hive_sync.database", hiveDb)
+          .option("hoodie.datasource.hive_sync.jdbcurl", jdbcUrl)
+          .option("hoodie.datasource.hive_sync.partition_fields","date_modified") // date
+          .option("hoodie.datasource.hive_sync.partition_extractor_class", "org.apache.hudi.hive.MultiPartKeysValueExtractor")
+          .option("hoodie.parquet.max.file.size", String.valueOf(1024 * 1024 * 1024))
+          .option("hoodie.parquet.small.file.limit", String.valueOf(32 * 1024 * 1024))
+          .option("hoodie.parquet.compression.ratio", String.valueOf(0.5))
+          .option("hoodie.datasource.write.recordkey.field",primaryKey)
+          .option("hoodie.datasource.write.keygenerator.class","org.apache.hudi.SimpleKeyGenerator")
+          .mode(hoodieSaveMode) //"append"
+          .save(s"$base_path/$hoodieTableName")
+      }
+
     }
 
-  }
+    //---------------
+    //TODO: remove this
+    if (hoodieOperation.equals("upsert")){
+      resultDF.repartition(1).write.mode("overwrite")
+        .parquet(s"hdfs:///Projects/benchmark/benchmark_Training_Datasets/tmp_tpcds/$hoodieTableName")
+    }
+    //---------------
 
+  }
 }
 
 /*
@@ -130,5 +207,20 @@ https://www.tensorflow.org/guide/data_performance
 https://www.tensorflow.org/api_docs/python/tf/data/Dataset
 
  */
+
+//    //https://hudi.apache.org/docs/configurations.html
+//    //https://github.com/nmukerje/EMR-Hudi-Workshop/blob/225cc1d3fa41bd0abdbe337de67ac5dcf427b03c/notebooks/2_Consume_Streaming_Updates.ipynb
+//    val hudiOptions = Map[String,String](
+//      DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY -> hudiTableRecordKey,
+//      DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY -> hudiTablePartitionKey,
+//      DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY -> hudiTablePrecombineKey,
+//      DataSourceWriteOptions.HIVE_SYNC_ENABLED_OPT_KEY -> "true",
+//      DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY -> hudiHiveTablePartitionKey,
+//      DataSourceWriteOptions.HIVE_ASSUME_DATE_PARTITION_OPT_KEY -> "false",
+//      DataSourceWriteOptions.HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY -> classOf[MultiPartKeysValueExtractor].getName,
+//      "hoodie.parquet.max.file.size" -> String.valueOf(1024 * 1024 * 1024),
+//      "hoodie.parquet.small.file.limit" -> String.valueOf(64 * 1024 * 1024),
+//      "hoodie.parquet.compression.ratio" -> String.valueOf(0.5),
+//      "hoodie.insert.shuffle.parallelism" -> String.valueOf(2))
 
 

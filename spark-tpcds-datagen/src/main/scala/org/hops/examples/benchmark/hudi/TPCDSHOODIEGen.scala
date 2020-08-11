@@ -12,7 +12,7 @@ object TPCDSHOODIEGen {
     val datagenArgs = new TPCDSHOODIEDatagenArguments(args)
     val spark = SparkSession.builder.getOrCreate()
 
-    val tpcdsTables = new Tables(spark.sqlContext, datagenArgs.scaleFactor.toInt)
+    val tpcdsTables = new Tables(spark, datagenArgs.scaleFactor.toInt)
 
     tpcdsTables.genHoodieData(
       datagenArgs.format,

@@ -7,7 +7,7 @@ object TPCDSDataGen {
   def main(args: Array[String]): Unit = {
     val datagenArgs = new TPCDSDatagenArguments(args)
     val spark = SparkSession.builder.getOrCreate()
-    val tpcdsTables = new Tables(spark.sqlContext, datagenArgs.scaleFactor.toInt)
+    val tpcdsTables = new Tables(spark, datagenArgs.scaleFactor.toInt)
 
     tpcdsTables.genData(
       datagenArgs.outputLocation,
