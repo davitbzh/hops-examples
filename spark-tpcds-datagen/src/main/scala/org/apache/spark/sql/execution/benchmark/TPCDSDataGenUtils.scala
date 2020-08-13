@@ -207,13 +207,13 @@ class Tables(spark: SparkSession, scaleFactor: Int) extends Serializable {
           .na.fill(0, Seq(partitionColumns(0)))
 
         HoodieOp.huodieops(spark, hiveIpadderss, grouped, name, hoodieStorageType,
-          hoodieOperation, primaryKeys, partitionColumns(0),
+          hoodieOperation, primaryKeys, partitionColumns,
           fssyncTable, hoodieSaveMode, base_path)
 
       } else {
         // throw new IllegalStateException("Exception thrown")
         HoodieOp.huodieops(spark, hiveIpadderss, data, name, hoodieStorageType,
-          hoodieOperation, primaryKeys, null,
+          hoodieOperation, primaryKeys, partitionColumns,
           fssyncTable, hoodieSaveMode, base_path)
       }
 

@@ -36,7 +36,7 @@ object Main {
 
     val timeout = 60 // timeout in hours
 
-    val query_filter = Seq("q14b-v1.4", "q95-v1.4") // Seq() == all queries; if Seq("q14b-v1.4", "q95-v1.4")
+    val query_filter = Seq() // Seq() == all queries; if Seq("q14b-v1.4", "q95-v1.4")
     //val query_filter = Seq("q6-v2.4", "q5-v2.4") // run subset of queries
 
     val randomizeQueries = false // run queries in a random order. Recommended for parallel runs.

@@ -7,6 +7,7 @@ import scala.util.Try
 
 class TPCDSHOODIEDatagenArguments(val args: Array[String]) {
 
+  var timesUpserts = "0"
   var scaleFactor = "1"
   var format = "parquet"
   var hoodieStorageType = ""
@@ -27,6 +28,10 @@ class TPCDSHOODIEDatagenArguments(val args: Array[String]) {
 
     while(args.nonEmpty) {
       args match {
+
+        case ("--times-upserts") :: value :: tail =>
+          timesUpserts = value
+          args = tail
 
         case ("--scale-factor") :: value :: tail =>
           scaleFactor = value
